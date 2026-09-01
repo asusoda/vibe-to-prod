@@ -80,24 +80,22 @@ Each challenge below teaches one piece of that.
 
 ## Challenge 1 — Point it at the file
 
-The weather widget uses an API key, and the key is sitting in plain text in the
-source code. Anyone who sees this repo sees the key. It needs to come from an
-environment variable instead.
+The weather widget is hardcoded with a secret configuration value in the source.
+That is a real risk, and it should be loaded from a local config source instead.
 
-There's a catch: this project has an `legacy/` folder with old code in it, and a
-vague prompt will send Copilot rummaging in the wrong file. Part of your job is
-telling it exactly where to look.
+There are a few plausible places a vague prompt can send Copilot, so part of your
+job is telling it exactly where to look. Don't let it guess.
 
 Try the lazy version first so you see what happens:
 
-> `remove the hardcoded API key`
+> `remove the hardcoded secret`
 
 Then do it properly — name the file, and say where the value should come from.
-Copilot can attach a file to your prompt with `#`. The value already lives in a
-file called `.env`; your job is to make the code read from there.
+Copilot can attach a file to your prompt with `#`. The app already has a local
+config file for values like this; your job is to make the code read from there.
 
-**Done when:** `node verify.js 1` is green — the key is gone from the source, the
-widget still works, and it correctly breaks if the key is missing.
+**Done when:** `node verify.js 1` is green — the secret is gone from the source,
+the widget still works, and it correctly breaks if the value is missing.
 
 ---
 
@@ -116,10 +114,6 @@ Ask Copilot to fix it — but *how* you ask decides whether you get a real fix o
 fake one. A vague prompt often makes Copilot "sanitize" the input by stripping
 out dangerous characters. That looks fixed and isn't. The real fix has a name,
 and there's more than one injectable query in this file.
-
-Start lazy so you can see the trap:
-
-> `fix the SQL injection in the login`
 
 Then run `node verify.js 2`. Read what it tells you. Then write a prompt that
 **names the technique you want** and doesn't settle for filtering characters.
@@ -177,10 +171,3 @@ re-runs the earlier ones for you. If one went red, that's the collateral damage
 this challenge is about — `git reset --hard HEAD` and try a tighter prompt.)
 
 ---
-
-## Stuck?
-
-Worked answers are in `solutions/` — one file per challenge. If you've been stuck
-for more than a few minutes, open the matching solution, read it until it makes
-sense, and keep moving. Reading a fix you understand beats staring at a blank
-prompt.
