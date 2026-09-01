@@ -16,8 +16,15 @@ challenge.
 Open a terminal (**Terminal → New Terminal**) and run:
 
 ```bash
+nvm install 22 && nvm use 22
 npm start
 ```
+
+The first line matters: this app uses Node's built-in `node:sqlite` module, which
+needs Node 22.13 or newer. The default Codespaces Node is older, and `npm start`
+will fail with `ERR_UNKNOWN_BUILTIN_MODULE: No such built-in module: node:sqlite`
+until you switch. You only need to do it once per terminal — if you open a new
+terminal, run `nvm use 22` again.
 
 A window will pop up offering to open the app in your browser — click it. If you
 miss it, open the **Ports** tab, find port 3000, and click the globe icon.
