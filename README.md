@@ -118,10 +118,6 @@ fake one. A vague prompt often makes Copilot "sanitize" the input by stripping
 out dangerous characters. That looks fixed and isn't. The real fix has a name,
 and there's more than one injectable query in this file.
 
-Start lazy so you can see the trap:
-
-> `fix the SQL injection in the login`
-
 Then run `node verify.js 2`. Read what it tells you. Then write a prompt that
 **names the technique you want** and doesn't settle for filtering characters.
 
