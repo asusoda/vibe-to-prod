@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gear Tracker</title>
+<link rel="stylesheet" href="/public/style.css">
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Gear Tracker</h1>
+  <p class="sub">Club equipment checkout</p>
+
+  <div class="card">
+    <h2>Conditions</h2>
+    <div id="weather" class="weather"><span class="meta">Loading…</span></div>
+  </div>
+
+  <div class="card">
+    <h2>Sign in</h2>
+    <label for="u">Username</label>
+    <input id="u" autocomplete="off">
+    <label for="p">Password</label>
+    <input id="p" type="password" autocomplete="off">
+    <button id="loginBtn">Sign in</button>
+    <div id="loginMsg"></div>
+  </div>
+
+  <div class="card">
+    <h2>Inventory</h2>
+    <table>
+      <thead>
+        <tr><th>Item</th><th>Category</th><th>Status</th><th>Action</th></tr>
+      </thead>
+      <tbody id="items"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<script src="/public/app.js"></script>
+</body>
+</html>
