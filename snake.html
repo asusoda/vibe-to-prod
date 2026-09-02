@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Snake</title>
+  <style>
+    :root {
+      --bg: #0b0f14;
+      --panel: #121a22;
+      --panel-2: #1b252e;
+      --gold: #f5b301;
+      --gold-soft: #ffcc33;
+      --green: #2ecc71;
+      --red: #ff5a5f;
+      --text: #f7f3e8;
+      --muted: #c7c2b8;
+      --line: rgba(245, 179, 1, 0.28);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at top, rgba(245, 179, 1, 0.18), transparent 30%),
+        linear-gradient(180deg, #0b0f14 0%, #111827 100%);
+      color: var(--text);
+      font-family: Arial, sans-serif;
+    }
+
+    .game-wrap {
+      width: min(92vw, 520px);
+      background: rgba(17, 24, 39, 0.9);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: 0 0 24px rgba(245, 179, 1, 0.12);
+      padding: 18px;
+      text-align: center;
+    }
+
+    .ticker {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: rgba(245, 179, 1, 0.08);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+    }
+
+    .ticker strong {
+      color: var(--text);
+    }
+
+    .ticker .up {
+      color: var(--green);
+      font-weight: bold;
+    }
+
+    h1 {
+      margin: 0 0 10px 0;
+      color: var(--gold-soft);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-size: 28px;
+    }
+
+    canvas {
+      background: #081018;
+      border: 3px solid var(--gold);
+      border-radius: 10px;
+      display: block;
+      margin: 0 auto 14px auto;
+      box-shadow: inset 0 0 12px rgba(245, 179, 1, 0.15);
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      background: linear-gradient(180deg, var(--gold), #d18b00);
+      color: #1d1402;
+      border: none;
+      border-radius: 8px;
+      padding: 9px 16px;
+      cursor: pointer;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+
+    a {
+      color: #ffd76a;
+      text-decoration: none;
+      font-weight: 700;
+      padding-top: 9px;
+    }
+  </style>
+</head>
+<body>
+  <div class="game-wrap">
+    <div class="ticker">
+      <span><strong>PLTR</strong> Palantir</span>
+      <span id="tickerValue">$--.--</span>
+      <span id="tickerChange" class="up">+0.00%</span>
+    </div>
+
+    <h1>Bitcoin Snake</h1>
+    <canvas id="game" width="400" height="400"></canvas>
+    <div class="controls">
+      <button id="restartBtn">Restart</button>
+      <a href="/">Back to app</a>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const gridSize = 20;
+    const tileCount = canvas.width / gridSize;
+
+    const tickerValueEl = document.getElementById('tickerValue');
+    const tickerChangeEl = document.getElementById('tickerChange');
+
+    let snake;
+    let direction;
+    let nextDirection;
+    let food;
+    let score;
+    let loop;
+
+    function renderTicker() {
+      const base = 90.5;
+      const drift = (Math.random() - 0.5) * 3.2;
+      const current = Math.max(0.01, base + drift);
+      const delta = (current - base) / base * 100;
+
+      tickerValueEl.textContent = '$' + current.toFixed(2);
+      tickerChangeEl.textContent = (delta >= 0 ? '+' : '') + delta.toFixed(2) + '%';
+      tickerChangeEl.className = delta >= 0 ? 'up' : 'down';
+    }
+
+    function resetGame() {
+      snake = [
+        { x: 10, y: 10 },
+        { x: 9, y: 10 },
+        { x: 8, y: 10 }
+      ];
+      direction = { x: 1, y: 0 };
+      nextDirection = { x: 1, y: 0 };
+      food = { x: 15, y: 10 };
+      score = 0;
+      if (loop) clearInterval(loop);
+      loop = setInterval(step, 120);
+      draw();
+    }
+
+    function placeFood() {
+      do {
+        food = {
+          x: Math.floor(Math.random() * tileCount),
+          y: Math.floor(Math.random() * tileCount)
+        };
+      } while (snake.some((segment) => segment.x === food.x && segment.y === food.y));
+    }
+
+    function step() {
+      direction = nextDirection;
+      const head = { x: snake[0].x + direction.x, y: snake[0].y + direction.y };
+
+      if (
+        head.x < 0 || head.x >= tileCount ||
+        head.y < 0 || head.y >= tileCount ||
+        snake.some((segment) => segment.x === head.x && segment.y === head.y)
+      ) {
+        resetGame();
+        return;
+      }
+
+      snake.unshift(head);
+
+      if (head.x === food.x && head.y === food.y) {
+        score += 1;
+        placeFood();
+      } else {
+        snake.pop();
+      }
+
+      draw();
+    }
+
+    function draw() {
+      ctx.fillStyle = '#081018';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      for (let x = 0; x < tileCount; x++) {
+        for (let y = 0; y < tileCount; y++) {
+          const isEven = (x + y) % 2 === 0;
+          ctx.fillStyle = isEven ? '#0d1720' : '#0b141d';
+          ctx.fillRect(x * gridSize, y * gridSize, gridSize, gridSize);
+        }
+      }
+
+      ctx.fillStyle = '#f5b301';
+      snake.forEach((segment) => {
+        ctx.fillRect(segment.x * gridSize + 1, segment.y * gridSize + 1, gridSize - 2, gridSize - 2);
+      });
+
+      ctx.fillStyle = '#2ecc71';
+      ctx.fillRect(food.x * gridSize + 2, food.y * gridSize + 2, gridSize - 4, gridSize - 4);
+
+      ctx.fillStyle = '#f7f3e8';
+      ctx.font = '16px Arial';
+      ctx.fillText('BTC: ' + score, 12, 20);
+    }
+
+    document.addEventListener('keydown', function (event) {
+      const map = {
+        ArrowUp: { x: 0, y: -1 },
+        ArrowDown: { x: 0, y: 1 },
+        ArrowLeft: { x: -1, y: 0 },
+        ArrowRight: { x: 1, y: 0 }
+      };
+
+      if (!map[event.key]) return;
+
+      const next = map[event.key];
+      const isOpposite = next.x === -direction.x && next.y === -direction.y;
+      if (!isOpposite) {
+        nextDirection = next;
+      }
+    });
+
+    document.getElementById('restartBtn').addEventListener('click', resetGame);
+
+    renderTicker();
+    setInterval(renderTicker, 1500);
+    resetGame();
+  </script>
+</body>
+</html>
