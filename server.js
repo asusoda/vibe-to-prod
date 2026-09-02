@@ -160,6 +160,18 @@ const server = http.createServer(async function (req, res) {
     return;
   }
 
+  if (req.method === 'DELETE' && req.url.startsWith('/api/items/')) {
+    const id = Number.parseInt(req.url.split('/').pop(), 10);
+    if (!Number.isInteger(id)) {
+      json(res, 400, { error: 'invalid item id' });
+      return;
+    }
+
+    const result = db.prepare('DELETE FROM items WHERE id = ?').run(id);
+    json(res, 200, { ok: true, deleted: result.changes > 0 });
+    return;
+  }
+
   json(res, 404, { error: 'not found' });
 });
 
