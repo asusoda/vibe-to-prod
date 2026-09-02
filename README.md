@@ -82,6 +82,8 @@ Each challenge below teaches one piece of that.
 
 The weather widget is hardcoded with a secret configuration value in the source.
 That is a real risk, and it should be loaded from a local config source instead.
+The starter repository does not include that local file, so you will need to
+create it as part of the fix.
 
 There are a few plausible places a vague prompt can send Copilot, so part of your
 job is telling it exactly where to look. Don't let it guess.
@@ -92,7 +94,8 @@ Try the lazy version first so you see what happens:
 
 Then do it properly — name the file, and say where the value should come from.
 Copilot can attach a file to your prompt with `#`. The app already has a local
-config file for values like this; your job is to make the code read from there.
+config convention for values like this: create a `.env` file at the repository
+root and make the code read from it.
 
 **Done when:** `node verify.js 1` is green — the secret is gone from the source,
 the widget still works, and it correctly breaks if the value is missing.
@@ -114,6 +117,10 @@ Ask Copilot to fix it — but *how* you ask decides whether you get a real fix o
 fake one. A vague prompt often makes Copilot "sanitize" the input by stripping
 out dangerous characters. That looks fixed and isn't. The real fix has a name,
 and there's more than one injectable query in this file.
+
+Start lazy so you can see the trap:
+
+> `fix the SQL injection in the login`
 
 Then run `node verify.js 2`. Read what it tells you. Then write a prompt that
 **names the technique you want** and doesn't settle for filtering characters.
