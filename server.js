@@ -9,12 +9,13 @@
 // ============================================================
 
 const http = require('node:http');
+const fs = require('node:fs');
+const path = require('node:path');
 const { DatabaseSync } = require('node:sqlite');
 
 const PORT = process.env.PORT || 3000;
 
-// weather widget key
-const WEATHER_API_KEY = "sk_live_a7f3d9e2b4c81f06";
+const WEATHER_API_KEY = process.env.WEATHER_API_KEY || '';
 
 // ------------------------------------------------------------
 // database
@@ -77,53 +78,7 @@ const PAGE = `<!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Gear Tracker</title>
-<style>
-  * { box-sizing: border-box; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    margin: 0;
-    padding: 32px 20px;
-    background: #f5f6f8;
-    color: #1c1e21;
-  }
-  .wrap { max-width: 720px; margin: 0 auto; }
-  h1 { font-size: 24px; margin: 0 0 4px; }
-  .sub { color: #65686c; font-size: 14px; margin: 0 0 24px; }
-  .card {
-    background: #fff;
-    border: 1px solid #dcdfe3;
-    border-radius: 8px;
-    padding: 20px;
-    margin-bottom: 20px;
-  }
-  .card h2 { font-size: 15px; text-transform: uppercase; letter-spacing: .04em;
-             color: #65686c; margin: 0 0 14px; }
-  label { display: block; font-size: 13px; margin-bottom: 4px; color: #3a3d42; }
-  input {
-    width: 100%; padding: 9px 10px; margin-bottom: 12px;
-    border: 1px solid #c8ccd1; border-radius: 6px; font-size: 14px;
-    font-family: inherit;
-  }
-  button {
-    background: #2f6fed; color: #fff; border: 0; border-radius: 6px;
-    padding: 9px 18px; font-size: 14px; cursor: pointer; font-family: inherit;
-  }
-  button:hover { background: #2559c4; }
-  #loginMsg { margin-top: 12px; font-size: 14px; min-height: 20px; }
-  .ok { color: #1a7f4b; }
-  .bad { color: #c0392b; }
-  table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  th { text-align: left; font-size: 12px; text-transform: uppercase;
-       color: #65686c; border-bottom: 1px solid #dcdfe3; padding: 0 8px 8px; }
-  td { padding: 10px 8px; border-bottom: 1px solid #eef0f2; }
-  tr:last-child td { border-bottom: 0; }
-  .pill { font-size: 12px; padding: 2px 8px; border-radius: 999px; }
-  .pill.available { background: #e4f5eb; color: #1a7f4b; }
-  .pill.out { background: #fdeceb; color: #c0392b; }
-  .weather { display: flex; align-items: baseline; gap: 10px; }
-  .weather .temp { font-size: 30px; font-weight: 600; }
-  .weather .meta { color: #65686c; font-size: 14px; }
-</style>
+<link rel="stylesheet" href="/styles.css">
 </head>
 <body>
 <div class="wrap">
@@ -158,54 +113,7 @@ const PAGE = `<!DOCTYPE html>
 
 </div>
 
-<script>
-  async function loadWeather() {
-    const el = document.getElementById('weather');
-    const r = await fetch('/api/weather');
-    if (!r.ok) {
-      el.innerHTML = '<span class="meta bad">Weather unavailable (' + r.status + ')</span>';
-      return;
-    }
-    const w = await r.json();
-    el.innerHTML =
-      '<span class="temp">' + w.tempF + '&deg;F</span>' +
-      '<span class="meta">' + w.conditions + ' &middot; ' + w.location +
-      ' &middot; ' + w.humidity + '% humidity</span>';
-  }
-
-  async function loadItems() {
-    const r = await fetch('/api/items?after=0');
-    const items = await r.json();
-    document.getElementById('items').innerHTML = items.map(function (i) {
-      const cls = i.status === 'available' ? 'available' : 'out';
-      return '<tr><td>' + i.name + '</td><td>' + i.category + '</td>' +
-             '<td><span class="pill ' + cls + '">' + i.status + '</span></td></tr>';
-    }).join('');
-  }
-
-  document.getElementById('loginBtn').onclick = async function () {
-    const msg = document.getElementById('loginMsg');
-    const r = await fetch('/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        username: document.getElementById('u').value,
-        password: document.getElementById('p').value
-      })
-    });
-    const data = await r.json();
-    if (data.ok) {
-      msg.className = 'ok';
-      msg.textContent = 'Signed in as ' + data.username + ' (' + data.role + ')';
-    } else {
-      msg.className = 'bad';
-      msg.textContent = 'Wrong username or password.';
-    }
-  };
-
-  loadWeather();
-  loadItems();
-</script>
+<script src="/app.js"></script>
 </body>
 </html>`;
 
@@ -227,15 +135,43 @@ function json(res, code, payload) {
   res.end(JSON.stringify(payload));
 }
 
-const server = http.createServer(async function (req, res) {
+function serveStatic(res, relativePath) {
+  const safePath = path.normalize(relativePath).replace(/^\.\.(?:[\\/]|$)/, '');
+  const filePath = path.join(__dirname, 'public', safePath);
 
-  if (req.method === 'GET' && req.url === '/') {
-    res.writeHead(200, { 'Content-Type': 'text/html' });
+  fs.readFile(filePath, function (err, data) {
+    if (err) {
+      json(res, 404, { error: 'not found' });
+      return;
+    }
+
+    const ext = path.extname(filePath).toLowerCase();
+    const type = {
+      '.css': 'text/css; charset=utf-8',
+      '.js': 'application/javascript; charset=utf-8'
+    }[ext] || 'application/octet-stream';
+
+    res.writeHead(200, { 'Content-Type': type });
+    res.end(data);
+  });
+}
+
+const server = http.createServer(async function (req, res) {
+  const url = new URL(req.url, 'http://localhost');
+  const { pathname } = url;
+
+  if (req.method === 'GET' && pathname === '/') {
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     res.end(PAGE);
     return;
   }
 
-  if (req.method === 'GET' && req.url === '/api/weather') {
+  if (req.method === 'GET' && (pathname === '/styles.css' || pathname === '/app.js')) {
+    serveStatic(res, pathname.slice(1));
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/api/weather') {
     const w = getWeather(WEATHER_API_KEY);
     if (!w) {
       json(res, 401, { error: 'weather api key missing or invalid' });
@@ -245,22 +181,31 @@ const server = http.createServer(async function (req, res) {
     return;
   }
 
-  if (req.method === 'GET' && req.url.startsWith('/api/items')) {
-    // ?after=<id> lets the UI page through the list
-    const after = new URL(req.url, 'http://localhost').searchParams.get('after') || '0';
-    const rows = db.prepare(
-      "SELECT * FROM items WHERE id > " + after + " ORDER BY id"
-    ).all();
+  if (req.method === 'GET' && pathname === '/api/items') {
+    const afterRaw = url.searchParams.get('after') || '0';
+    const after = Number.parseInt(afterRaw, 10);
+    const safeAfter = Number.isFinite(after) ? after : 0;
+    const rows = db.prepare('SELECT * FROM items WHERE id > ? ORDER BY id').all(safeAfter);
     json(res, 200, rows);
     return;
   }
 
-  if (req.method === 'POST' && req.url === '/api/login') {
+  if (req.method === 'DELETE' && /^\/api\/items\/\d+$/.test(pathname)) {
+    const id = Number.parseInt(pathname.split('/').pop(), 10);
+    const result = db.prepare('DELETE FROM items WHERE id = ?').run(id);
+    if (result.changes === 0) {
+      json(res, 404, { error: 'item not found' });
+      return;
+    }
+    json(res, 200, { ok: true, id });
+    return;
+  }
+
+  if (req.method === 'POST' && pathname === '/api/login') {
     const body = await readBody(req);
-    const query =
-      "SELECT * FROM users WHERE username = '" + body.username +
-      "' AND password = '" + body.password + "'";
-    const user = db.prepare(query).get();
+    const username = typeof body.username === 'string' ? body.username : '';
+    const password = typeof body.password === 'string' ? body.password : '';
+    const user = db.prepare('SELECT * FROM users WHERE username = ? AND password = ?').get(username, password);
     if (user) {
       json(res, 200, { ok: true, username: user.username, role: user.role });
     } else {
