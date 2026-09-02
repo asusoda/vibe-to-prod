@@ -13,8 +13,8 @@ const { DatabaseSync } = require('node:sqlite');
 
 const PORT = process.env.PORT || 3000;
 
-// weather widget key
-const WEATHER_API_KEY = "sk_live_a7f3d9e2b4c81f06";
+// weather widget key - loaded from .env file
+const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
 
 // ------------------------------------------------------------
 // database
