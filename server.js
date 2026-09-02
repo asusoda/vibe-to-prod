@@ -108,6 +108,11 @@ const server = http.createServer(async function (req, res) {
     return;
   }
 
+  if (req.method === 'GET' && req.url === '/snake') {
+    serveFile(res, path.join(__dirname, 'snake.html'), 'text/html');
+    return;
+  }
+
   if (req.method === 'GET' && req.url === '/public/style.css') {
     serveFile(res, path.join(__dirname, 'public', 'style.css'), 'text/css');
     return;
